@@ -39,6 +39,7 @@ export type PullMode = 'replace' | 'merge';
  * - `pull-only`: only apply remote changes; never commit or push this machine's config.
  */
 export type SyncMode = 'sync' | 'pull-only';
+export type ModelRemapConfig = Record<string, string>;
 
 export interface TursoSessionBackendSettings {
   database?: string;
@@ -77,6 +78,7 @@ export interface SyncConfig {
   includeAgentsDir?: boolean;
   pullMode?: PullMode;
   mode?: SyncMode;
+  modelRemap?: ModelRemapConfig;
   secretsBackend?: SecretsBackendConfig;
   extraSecretPaths?: string[];
   extraConfigPaths?: string[];
@@ -93,6 +95,7 @@ export interface NormalizedSyncConfig extends SyncConfig {
   includeAgentsDir: boolean;
   pullMode: PullMode;
   mode: SyncMode;
+  modelRemap: ModelRemapConfig;
   secretsBackend?: SecretsBackendConfig;
   extraSecretPaths: string[];
   extraConfigPaths: string[];
@@ -186,6 +189,21 @@ export function normalizeSessionBackend(
   };
 }
 
+export function normalizeModelRemap(input: unknown): ModelRemapConfig {
+  if (!isPlainObject(input)) return {};
+  const result: ModelRemapConfig = {};
+  for (const [from, to] of Object.entries(input)) {
+    if (typeof to !== 'string' || !from.trim() || !to.trim() || from === to) continue;
+    Object.defineProperty(result, from, {
+      value: to,
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+  }
+  return result;
+}
+
 export function isTursoSessionBackend(config: SyncConfig | NormalizedSyncConfig): boolean {
   if (!config.includeSessions) return false;
   const normalized = normalizeSessionBackend(config.sessionBackend);
@@ -208,6 +226,7 @@ export function normalizeSyncConfig(config: SyncConfig): NormalizedSyncConfig {
     includeAgentsDir,
     pullMode: config.pullMode === 'merge' ? 'merge' : 'replace',
     mode: config.mode === 'pull-only' ? 'pull-only' : 'sync',
+    modelRemap: normalizeModelRemap(config.modelRemap),
     secretsBackend: normalizeSecretsBackend(config.secretsBackend),
     extraSecretPaths: Array.isArray(config.extraSecretPaths) ? config.extraSecretPaths : [],
     extraConfigPaths: Array.isArray(config.extraConfigPaths) ? config.extraConfigPaths : [],

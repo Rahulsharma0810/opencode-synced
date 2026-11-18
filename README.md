@@ -137,6 +137,7 @@ Create `~/.config/opencode/opencode-synced.jsonc`:
   "includeAgentsDir": true,
   "pullMode": "replace",
   "mode": "sync",
+  "modelRemap": {},
   "extraSecretPaths": [],
   "extraConfigPaths": [],
 }
@@ -179,6 +180,26 @@ server, a shared machine or an appliance. In this mode:
 
 The default is `"mode": "sync"`. A read-only deploy key on the remote is a good complement, since it
 makes an accidental push impossible at the Git level as well.
+### Model remap
+
+Agent and command files often pin a `model:` that only exists on some machines. Set `modelRemap`
+in `opencode-synced.jsonc` to translate those values per machine:
+
+```jsonc
+{
+  "modelRemap": {
+    "some-provider/some-model": "other-provider/other-model"
+  }
+}
+```
+
+- On pull, the `model:` frontmatter key of markdown files in `agent/`, `agents/`, `command/`,
+  `commands/`, `mode/` and `modes/`, and the `model` and `small_model` values in
+  `opencode.json(c)`, are rewritten to the local value.
+- On push, the mapping is reversed, so the repository keeps the canonical value. If two canonical
+  values map to the same local value, that local value is left as is on push.
+- A `#variant` suffix is preserved when only the base model is mapped.
+- Only exact model strings are replaced. Prompt bodies and other keys are never touched.
 
 Disable default directory sync by setting:
 - `"includeOpencodeSkills": false` to skip `~/.config/opencode/skills/`
