@@ -138,6 +138,7 @@ Create `~/.config/opencode/opencode-synced.jsonc`:
   "pullMode": "replace",
   "mode": "sync",
   "modelRemap": {},
+  "autoSync": { "enabled": false, "intervalSec": 300, "push": true, "pull": true },
   "extraSecretPaths": [],
   "extraConfigPaths": [],
 }
@@ -180,6 +181,7 @@ server, a shared machine or an appliance. In this mode:
 
 The default is `"mode": "sync"`. A read-only deploy key on the remote is a good complement, since it
 makes an accidental push impossible at the Git level as well.
+
 ### Model remap
 
 Agent and command files often pin a `model:` that only exists on some machines. Set `modelRemap`
@@ -200,6 +202,27 @@ in `opencode-synced.jsonc` to translate those values per machine:
   values map to the same local value, that local value is left as is on push.
 - A `#variant` suffix is preserved when only the base model is mapped.
 - Only exact model strings are replaced. Prompt bodies and other keys are never touched.
+
+### Automatic sync
+
+By default config is synced when opencode starts (and when you run pull or push). On a long-running
+opencode server that can leave machines diverged for days. Set `autoSync` to also sync on a timer:
+
+```jsonc
+{
+  "autoSync": { "enabled": true, "intervalSec": 300, "push": true, "pull": true }
+}
+```
+
+- `intervalSec` defaults to 300 and is clamped to at least 30.
+- `push`: commit and push local config changes. `pull`: apply remote changes.
+- A pass never overwrites unpushed local edits. It stages your local config first, and if the remote
+  also changed it stops, leaves your files alone, and shows one notice asking you to run pull or push
+  yourself. Resolve it and the next pass continues.
+- It does nothing while another sync is running, and pulled changes still need an opencode restart.
+- `opencode-synced.jsonc` is itself synced, so enabling this on one machine enables it on the others
+  at their next pull.
+- The Turso `syncIntervalSec` setting is separate and only applies to session sync.
 
 Disable default directory sync by setting:
 - `"includeOpencodeSkills": false` to skip `~/.config/opencode/skills/`
