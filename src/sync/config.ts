@@ -34,6 +34,12 @@ export type SessionBackendType = 'git' | 'turso';
  */
 export type PullMode = 'replace' | 'merge';
 
+/**
+ * - `sync` (default): pull remote changes and push local changes.
+ * - `pull-only`: only apply remote changes; never commit or push this machine's config.
+ */
+export type SyncMode = 'sync' | 'pull-only';
+
 export interface TursoSessionBackendSettings {
   database?: string;
   url?: string;
@@ -70,6 +76,7 @@ export interface SyncConfig {
   includeOpencodeSkills?: boolean;
   includeAgentsDir?: boolean;
   pullMode?: PullMode;
+  mode?: SyncMode;
   secretsBackend?: SecretsBackendConfig;
   extraSecretPaths?: string[];
   extraConfigPaths?: string[];
@@ -85,6 +92,7 @@ export interface NormalizedSyncConfig extends SyncConfig {
   includeOpencodeSkills: boolean;
   includeAgentsDir: boolean;
   pullMode: PullMode;
+  mode: SyncMode;
   secretsBackend?: SecretsBackendConfig;
   extraSecretPaths: string[];
   extraConfigPaths: string[];
@@ -199,6 +207,7 @@ export function normalizeSyncConfig(config: SyncConfig): NormalizedSyncConfig {
     includeOpencodeSkills,
     includeAgentsDir,
     pullMode: config.pullMode === 'merge' ? 'merge' : 'replace',
+    mode: config.mode === 'pull-only' ? 'pull-only' : 'sync',
     secretsBackend: normalizeSecretsBackend(config.secretsBackend),
     extraSecretPaths: Array.isArray(config.extraSecretPaths) ? config.extraSecretPaths : [],
     extraConfigPaths: Array.isArray(config.extraConfigPaths) ? config.extraConfigPaths : [],
