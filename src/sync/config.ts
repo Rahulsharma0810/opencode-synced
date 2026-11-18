@@ -58,6 +58,23 @@ export interface NormalizedAutoSyncSettings {
 export const DEFAULT_AUTO_SYNC_INTERVAL_SEC = 300;
 export const MIN_AUTO_SYNC_INTERVAL_SEC = 30;
 
+export interface OpenChamberSettings {
+  enabled?: boolean;
+  /** Override for the local preferences file. Defaults to `<config dir>/openchamber/preferences.json`. */
+  path?: string;
+  /** Field names (a trailing `*` is a prefix wildcard) to sync instead of the default list. */
+  include?: string[];
+  /** Field names (a trailing `*` is a prefix wildcard) that are never synced. */
+  exclude?: string[];
+}
+
+export interface NormalizedOpenChamberSettings {
+  enabled: boolean;
+  path?: string;
+  include: string[];
+  exclude: string[];
+}
+
 export interface TursoSessionBackendSettings {
   database?: string;
   url?: string;
@@ -97,6 +114,7 @@ export interface SyncConfig {
   mode?: SyncMode;
   modelRemap?: ModelRemapConfig;
   autoSync?: AutoSyncSettings;
+  openChamber?: OpenChamberSettings;
   secretsBackend?: SecretsBackendConfig;
   extraSecretPaths?: string[];
   extraConfigPaths?: string[];
@@ -115,6 +133,7 @@ export interface NormalizedSyncConfig extends SyncConfig {
   mode: SyncMode;
   modelRemap: ModelRemapConfig;
   autoSync: NormalizedAutoSyncSettings;
+  openChamber: NormalizedOpenChamberSettings;
   secretsBackend?: SecretsBackendConfig;
   extraSecretPaths: string[];
   extraConfigPaths: string[];
@@ -238,6 +257,22 @@ export function normalizeAutoSync(input: unknown): NormalizedAutoSyncSettings {
   };
 }
 
+function normalizeStringList(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return input.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
+}
+
+export function normalizeOpenChamber(input: unknown): NormalizedOpenChamberSettings {
+  const settings = isPlainObject(input) ? input : {};
+  const customPath = typeof settings.path === 'string' ? settings.path.trim() : '';
+  return {
+    enabled: settings.enabled === true,
+    path: customPath || undefined,
+    include: normalizeStringList(settings.include),
+    exclude: normalizeStringList(settings.exclude),
+  };
+}
+
 export function isTursoSessionBackend(config: SyncConfig | NormalizedSyncConfig): boolean {
   if (!config.includeSessions) return false;
   const normalized = normalizeSessionBackend(config.sessionBackend);
@@ -262,6 +297,7 @@ export function normalizeSyncConfig(config: SyncConfig): NormalizedSyncConfig {
     mode: config.mode === 'pull-only' ? 'pull-only' : 'sync',
     modelRemap: normalizeModelRemap(config.modelRemap),
     autoSync: normalizeAutoSync(config.autoSync),
+    openChamber: normalizeOpenChamber(config.openChamber),
     secretsBackend: normalizeSecretsBackend(config.secretsBackend),
     extraSecretPaths: Array.isArray(config.extraSecretPaths) ? config.extraSecretPaths : [],
     extraConfigPaths: Array.isArray(config.extraConfigPaths) ? config.extraConfigPaths : [],

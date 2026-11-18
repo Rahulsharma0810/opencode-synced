@@ -31,6 +31,11 @@ import {
   remapConfigModels,
   remapMarkdownDirectory,
 } from './model-remap.js';
+import {
+  type OpenChamberPlan,
+  pullOpenChamberPreferences,
+  pushOpenChamberPreferences,
+} from './openchamber.js';
 import type { ExtraPathPlan, SyncItem, SyncPlan } from './paths.js';
 import { fromPortablePath, normalizePath, toPortablePath } from './paths.js';
 
@@ -60,7 +65,12 @@ interface ExtraPathManifest {
 export async function syncRepoToLocal(
   plan: SyncPlan,
   overrides: Record<string, unknown> | null,
-  options: { chunkOptions?: ChunkOptions; pullMode?: PullMode; modelRemap?: ModelRemap } = {}
+  options: {
+    chunkOptions?: ChunkOptions;
+    pullMode?: PullMode;
+    modelRemap?: ModelRemap;
+    openChamber?: OpenChamberPlan | null;
+  } = {}
 ): Promise<void> {
   const merge = options.pullMode === 'merge';
   for (const item of plan.items) {
@@ -76,6 +86,10 @@ export async function syncRepoToLocal(
 
   if (!isEmptyRemap(options.modelRemap)) {
     await applyModelRemapToLocal(plan, options.modelRemap as ModelRemap);
+  }
+
+  if (options.openChamber) {
+    await pullOpenChamberPreferences(options.openChamber);
   }
 
   if (overrides && Object.keys(overrides).length > 0) {
@@ -108,6 +122,7 @@ export async function syncLocalToRepo(
     allowMcpSecrets?: boolean;
     chunkOptions?: ChunkOptions;
     modelRemap?: ModelRemap;
+    openChamber?: OpenChamberPlan | null;
   } = {}
 ): Promise<void> {
   const inverseRemap = invertModelRemap(options.modelRemap);
@@ -170,6 +185,9 @@ export async function syncLocalToRepo(
 
   await writeExtraPathManifest(plan, plan.extraConfigs);
   await writeExtraPathManifest(plan, plan.extraSecrets);
+  if (options.openChamber) {
+    await pushOpenChamberPreferences(options.openChamber);
+  }
   await cleanupUnreferencedChunkStores(plan.repoRoot);
 }
 
